@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from site_relinker.models import Operation, OperationResult, ResultStatus
 from site_relinker.reporter import Reporter
 

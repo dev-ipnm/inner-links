@@ -118,11 +118,14 @@ class LinkOperation(BaseModel):
     @model_validator(mode="after")
     def _validate_target_url_required(self) -> LinkOperation:
         """Ensure target_url is provided for add and replace operations."""
-        if self.operation in (Operation.ADD, Operation.REPLACE):
-            if not self.target_url:
-                raise ValueError(
-                    f"target_url is required for {self.operation.value} operations"
-                )
+        if (
+            self.operation in (Operation.ADD, Operation.REPLACE)
+            and not self.target_url
+        ):
+            raise ValueError(
+                f"target_url is required for "
+                f"{self.operation.value} operations"
+            )
         return self
 
 
@@ -245,10 +248,12 @@ class AppConfig(BaseModel):
     @model_validator(mode="after")
     def _validate_nth_requires_n(self) -> AppConfig:
         """Ensure match_n is set when match_strategy is NTH."""
-        if self.match_strategy == MatchStrategy.NTH:
-            if self.match_n is None or self.match_n < 1:
-                raise ValueError(
-                    "match_n must be a positive integer "
-                    "when match_strategy is 'nth'"
-                )
+        if (
+            self.match_strategy == MatchStrategy.NTH
+            and (self.match_n is None or self.match_n < 1)
+        ):
+            raise ValueError(
+                "match_n must be a positive integer "
+                "when match_strategy is 'nth'"
+            )
         return self

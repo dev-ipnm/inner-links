@@ -127,10 +127,10 @@ def sample_html_with_links() -> str:
 <head><title>Test Page With Links</title></head>
 <body>
 <div id="main-content">
-    <p>Visit our <a href="/help.html" class="inner-link">help page</a> for more info.</p>
-    <p>Check out <a href="https://external.com/page" rel="noopener noreferrer">external site</a> too.</p>
+    <p>Visit our <a href="/help.html" class="inner-link">help page</a>.</p>
+    <p>Check out <a href="https://external.com/page">external site</a>.</p>
     <p>This click here text is not linked yet.</p>
-    <p>Another <a href="/old-link.html" class="inner-link change22">click here</a> that is already linked.</p>
+    <p>Another <a href="/old-link.html" class="inner-link">click here</a>.</p>
 </div>
 </body>
 </html>"""
@@ -167,7 +167,7 @@ def tmp_site(tmp_path: Path) -> Path:
 <body>
 <div id="content">
     <p>This is a help topic. Click here for related articles.</p>
-    <p>You can also find help on the <a href="/index.html" class="inner-link">home page</a>.</p>
+    <p>Find help on the <a href="/index.html">home page</a>.</p>
 </div>
 </body>
 </html>""",

@@ -92,7 +92,7 @@ def parse_csv(path: Path) -> list[LinkOperation]:
 
     if errors:
         raise InputError(
-            f"CSV validation errors:\n" + "\n".join(errors)
+            "CSV validation errors:\n" + "\n".join(errors)
         )
 
     if not operations:

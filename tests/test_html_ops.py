@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import Path
 
 from bs4 import BeautifulSoup, Tag
 
@@ -11,8 +10,6 @@ from site_relinker.html_ops import AnchorMatcher, ContentScope, process_operatio
 from site_relinker.models import (
     AppConfig,
     LinkOperation,
-    MatchStrategy,
-    Operation,
     ResultStatus,
     ScopeDefinition,
     ScopeType,
@@ -115,11 +112,15 @@ class TestAnchorMatcher:
         matches = matcher.find_all()
 
         assert len(matches) == 1
-        assert str(matches[0].text_node)[matches[0].start : matches[0].end].lower() == "help"
+        m = matches[0]
+        assert str(m.text_node)[m.start : m.end].lower() == "help"
 
     def test_anchor_match_word_boundary(self) -> None:
         """'link' doesn't match 'linking' due to word boundary."""
-        html = "<html><body><p>We are linking to pages. Here is a link.</p></body></html>"
+        html = (
+            "<html><body><p>We are linking to pages."
+            " Here is a link.</p></body></html>"
+        )
         soup = _parse(html)
         body = soup.find("body")
         assert body is not None
@@ -407,7 +408,9 @@ class TestRemoveLink:
     ) -> None:
         """Anchor text remains after link removal."""
         html = (
-            '<html><body><p>See <a href="/page.html">click here</a> for more.</p></body></html>'
+            "<html><body><p>See "
+            '<a href="/page.html">click here</a>'
+            " for more.</p></body></html>"
         )
         op = make_operation(operation="remove", anchor="click here", target_url=None)
         config = make_config()
@@ -431,7 +434,9 @@ class TestScanLink:
     ) -> None:
         """Reports linked=True with target URL."""
         html = (
-            '<html><body><p><a href="/target.html" class="inner-link">click here</a></p></body></html>'
+            "<html><body><p>"
+            '<a href="/target.html" class="inner-link">'
+            "click here</a></p></body></html>"
         )
         op = make_operation(operation="scan", anchor="click here", target_url=None)
         config = make_config()

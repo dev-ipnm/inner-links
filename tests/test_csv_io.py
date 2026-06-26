@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from site_relinker.csv_io import parse_csv, write_dry_run_report, write_scan_results
 from site_relinker.models import (
     InputError,
     Operation,
@@ -15,7 +16,6 @@ from site_relinker.models import (
     ResultStatus,
     ScanResult,
 )
-from site_relinker.csv_io import parse_csv, write_dry_run_report, write_scan_results
 
 
 class TestParseCSV:

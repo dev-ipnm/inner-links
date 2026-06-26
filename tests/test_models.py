@@ -13,7 +13,6 @@ from site_relinker.models import (
     BackendError,
     BackendType,
     ConfigError,
-    IfLinkedPolicy,
     InputError,
     LinkOperation,
     MatchStrategy,

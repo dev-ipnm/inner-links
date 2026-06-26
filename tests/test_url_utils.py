@@ -6,7 +6,6 @@ import pytest
 
 from site_relinker.models import ConfigError
 from site_relinker.url_utils import (
-    extract_domain,
     is_internal,
     normalize_to_relative,
     resolve_relative,

@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import random
 import re
+from collections.abc import Iterator
 from copy import copy
-from typing import Any, Iterator
+from typing import Any
 
 from bs4 import BeautifulSoup, Comment, Tag
 from bs4.element import AttributeValueList, NavigableString
@@ -129,11 +130,12 @@ class ContentScope:
             The NavigableString containing the boundary, or None.
         """
         for node in root.descendants:
-            if isinstance(node, NavigableString) and not isinstance(
-                node, Comment
+            if (
+                isinstance(node, NavigableString)
+                and not isinstance(node, Comment)
+                and boundary in str(node)
             ):
-                if boundary in str(node):
-                    return node
+                return node
         return None
 
     def _collect_before(
@@ -621,7 +623,7 @@ class LinkManipulator:
         if after:
             parts.append(NavigableString(after))
 
-        for i, part in enumerate(reversed(parts)):
+        for _i, part in enumerate(reversed(parts)):
             if idx < len(list(parent_tag.children)):
                 ref = list(parent_tag.children)[idx]
                 ref.insert_before(part)

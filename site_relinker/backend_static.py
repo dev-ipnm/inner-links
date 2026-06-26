@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import shutil
 from collections import defaultdict
@@ -118,7 +119,7 @@ class StaticSiteBackend:
         try:
             file_path = self.resolve_url(url)
         except BackendError as e:
-            from site_relinker.models import Operation, ResultStatus
+            from site_relinker.models import ResultStatus
 
             return [
                 OperationResult(
@@ -169,10 +170,8 @@ class StaticSiteBackend:
         """
         processed_paths = set()
         for url in processed_urls:
-            try:
+            with contextlib.suppress(BackendError):
                 processed_paths.add(self.resolve_url(url))
-            except BackendError:
-                pass
 
         for ext in self._static.extensions:
             for file_path in self._static.web_root.rglob(f"*.{ext}"):
