@@ -24,6 +24,9 @@ dev = [
     "lxml-stubs>=0.5",
 ]
 
+[project.scripts]
+site-relinker = "site_relinker.cli:main"
+
 [tool.mypy]
 strict = true
 python_version = "3.10"
