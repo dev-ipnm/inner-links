@@ -97,6 +97,184 @@ class TestContentScope:
         assert "Sidebar" in text
         assert "Footer" in text
 
+    def test_scope_below_comment_substring(self) -> None:
+        """Boundary matches a substring of an HTML comment."""
+        html = (
+            "<html><body>"
+            "<p>Above the comment.</p>"
+            "<!-- Content is located below -->"
+            "<p>Below the comment.</p>"
+            "</body></html>"
+        )
+        soup = _parse(html)
+        scope_def = ScopeDefinition(
+            scope_type=ScopeType.BELOW,
+            scope_value="is located below -->",
+        )
+        result = ContentScope(soup, scope_def).resolve()
+
+        assert result is not None
+        text = result.get_text()
+        assert "Below the comment" in text
+        assert "Above the comment" not in text
+
+    def test_scope_above_comment_substring(self) -> None:
+        """Above scope works with a substring of an HTML comment."""
+        html = (
+            "<html><body>"
+            "<p>Above the comment.</p>"
+            "<!-- Content is located below -->"
+            "<p>Below the comment.</p>"
+            "</body></html>"
+        )
+        soup = _parse(html)
+        scope_def = ScopeDefinition(
+            scope_type=ScopeType.ABOVE,
+            scope_value="<!-- Content",
+        )
+        result = ContentScope(soup, scope_def).resolve()
+
+        assert result is not None
+        text = result.get_text()
+        assert "Above the comment" in text
+        assert "Below the comment" not in text
+
+    def test_scope_below_comment_inner_text(self) -> None:
+        """Boundary matches the inner text of a comment (no delimiters)."""
+        html = (
+            "<html><body>"
+            "<p>Before.</p>"
+            "<!-- SECTION BREAK -->"
+            "<p>After.</p>"
+            "</body></html>"
+        )
+        soup = _parse(html)
+        scope_def = ScopeDefinition(
+            scope_type=ScopeType.BELOW,
+            scope_value="SECTION BREAK",
+        )
+        result = ContentScope(soup, scope_def).resolve()
+
+        assert result is not None
+        text = result.get_text()
+        assert "After" in text
+        assert "Before" not in text
+
+    def test_scope_below_text_node_substring(self) -> None:
+        """Boundary substring matches within a regular text node."""
+        html = (
+            "<html><body>"
+            "<p>This paragraph has important text here.</p>"
+            "<p>Content after boundary.</p>"
+            "</body></html>"
+        )
+        soup = _parse(html)
+        scope_def = ScopeDefinition(
+            scope_type=ScopeType.BELOW,
+            scope_value="important text",
+        )
+        result = ContentScope(soup, scope_def).resolve()
+
+        assert result is not None
+        text = result.get_text()
+        assert "Content after boundary" in text
+
+    def test_scope_below_tag_class_attribute(self) -> None:
+        """Boundary matches a class attribute in a div's opening tag."""
+        html = (
+            "<html><body>"
+            "<p>Header area.</p>"
+            '<div class="entry-content prose">'
+            "<p>Main article content here.</p>"
+            "</div>"
+            "<p>Footer area.</p>"
+            "</body></html>"
+        )
+        soup = _parse(html)
+        scope_def = ScopeDefinition(
+            scope_type=ScopeType.BELOW,
+            scope_value='entry-content prose">',
+        )
+        result = ContentScope(soup, scope_def).resolve()
+
+        assert result is not None
+        text = result.get_text()
+        assert "Main article content" in text
+        assert "Footer area" in text
+        assert "Header area" not in text
+
+    def test_scope_above_tag_class_attribute(self) -> None:
+        """Above scope works with a tag class attribute boundary."""
+        html = (
+            "<html><body>"
+            "<p>Header area.</p>"
+            '<div class="entry-content prose">'
+            "<p>Main article content here.</p>"
+            "</div>"
+            "<p>Footer area.</p>"
+            "</body></html>"
+        )
+        soup = _parse(html)
+        scope_def = ScopeDefinition(
+            scope_type=ScopeType.ABOVE,
+            scope_value='class="entry-content prose"',
+        )
+        result = ContentScope(soup, scope_def).resolve()
+
+        assert result is not None
+        text = result.get_text()
+        assert "Header area" in text
+        assert "Main article content" not in text
+
+    def test_scope_below_tag_nested(self) -> None:
+        """Tag boundary works when the matching tag is nested."""
+        html = (
+            "<html><body>"
+            "<div id='wrapper'>"
+            "<p>Before.</p>"
+            '<div class="entry-content prose">'
+            "<p>Inside entry.</p>"
+            "</div>"
+            "<p>After inside wrapper.</p>"
+            "</div>"
+            "</body></html>"
+        )
+        soup = _parse(html)
+        scope_def = ScopeDefinition(
+            scope_type=ScopeType.BELOW,
+            scope_value="entry-content prose",
+        )
+        result = ContentScope(soup, scope_def).resolve()
+
+        assert result is not None
+        text = result.get_text()
+        assert "Inside entry" in text
+        assert "After inside wrapper" in text
+        assert "Before" not in text
+
+    def test_scope_below_tag_text_node_takes_priority(self) -> None:
+        """Text node match takes priority over tag markup match."""
+        html = (
+            "<html><body>"
+            "<p>Look for entry-content prose here.</p>"
+            '<div class="entry-content prose">'
+            "<p>Inside div.</p>"
+            "</div>"
+            "</body></html>"
+        )
+        soup = _parse(html)
+        scope_def = ScopeDefinition(
+            scope_type=ScopeType.BELOW,
+            scope_value="entry-content prose",
+        )
+        result = ContentScope(soup, scope_def).resolve()
+
+        assert result is not None
+        text = result.get_text()
+        # Text node match comes first, so "here." is the partial after
+        # the boundary, and the div content follows
+        assert "Inside div" in text
+
 
 class TestAnchorMatcher:
     """Tests for the AnchorMatcher class (tests 6-10)."""
