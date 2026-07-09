@@ -120,21 +120,28 @@ class ContentScope:
     def _find_boundary_node(
         self, root: Tag, boundary: str
     ) -> NavigableString | None:
-        """Find the first text node containing the boundary string.
+        """Find the first node containing the boundary string.
+
+        Searches text nodes and HTML comments. For comments, the
+        boundary is matched against the full markup including
+        delimiters (``<!-- ... -->``), allowing partial matches
+        like ``"below -->"`` against ``<!-- content below -->``.
 
         Args:
             root: The root tag to search within.
-            boundary: The boundary string to find.
+            boundary: The boundary string to find (substring,
+                case-sensitive).
 
         Returns:
             The NavigableString containing the boundary, or None.
         """
         for node in root.descendants:
-            if (
-                isinstance(node, NavigableString)
-                and not isinstance(node, Comment)
-                and boundary in str(node)
-            ):
+            if not isinstance(node, NavigableString):
+                continue
+            if isinstance(node, Comment):
+                if boundary in f"<!--{node}-->":
+                    return node
+            elif boundary in str(node):
                 return node
         return None
 
@@ -235,6 +242,8 @@ class ContentScope:
             A copy of the element with only content before the boundary.
         """
         if element is boundary_node:
+            if isinstance(element, Comment):
+                return None
             text = str(element)
             idx = text.find(boundary)
             before_text = text[:idx]
@@ -277,6 +286,8 @@ class ContentScope:
             A copy of the element with only content after the boundary.
         """
         if element is boundary_node:
+            if isinstance(element, Comment):
+                return None
             text = str(element)
             idx = text.find(boundary) + len(boundary)
             after_text = text[idx:]
