@@ -119,13 +119,15 @@ class ContentScope:
 
     def _find_boundary_node(
         self, root: Tag, boundary: str
-    ) -> NavigableString | None:
+    ) -> NavigableString | Tag | None:
         """Find the first node containing the boundary string.
 
-        Searches text nodes and HTML comments. For comments, the
-        boundary is matched against the full markup including
-        delimiters (``<!-- ... -->``), allowing partial matches
-        like ``"below -->"`` against ``<!-- content below -->``.
+        Searches text nodes and HTML comments first, then falls back
+        to matching against the opening-tag markup of HTML elements.
+        For comments, the boundary is matched against the full markup
+        including delimiters (``<!-- ... -->``).  For tags, it is
+        matched against the reconstructed opening tag
+        (e.g. ``<div class="entry-content prose">``).
 
         Args:
             root: The root tag to search within.
@@ -133,7 +135,8 @@ class ContentScope:
                 case-sensitive).
 
         Returns:
-            The NavigableString containing the boundary, or None.
+            The NavigableString or Tag containing the boundary,
+            or None.
         """
         for node in root.descendants:
             if not isinstance(node, NavigableString):
@@ -143,12 +146,36 @@ class ContentScope:
                     return node
             elif boundary in str(node):
                 return node
+
+        for node in root.descendants:
+            if isinstance(node, Tag):
+                opening = self._tag_opening_markup(node)
+                if boundary in opening:
+                    return node
+
         return None
+
+    @staticmethod
+    def _tag_opening_markup(tag: Tag) -> str:
+        """Reconstruct the opening tag markup for substring matching.
+
+        Args:
+            tag: The Tag element.
+
+        Returns:
+            A string like ``<div class="foo bar" id="main">``.
+        """
+        parts = [f"<{tag.name}"]
+        for key, val in tag.attrs.items():
+            if isinstance(val, list):
+                val = " ".join(str(v) for v in val)
+            parts.append(f' {key}="{val}"')
+        return "".join(parts) + ">"
 
     def _collect_before(
         self,
         body: Tag,
-        boundary_node: NavigableString,
+        boundary_node: NavigableString | Tag,
         boundary: str,
         wrapper: Tag,
     ) -> None:
@@ -156,7 +183,7 @@ class ContentScope:
 
         Args:
             body: The body element.
-            boundary_node: The text node containing the boundary.
+            boundary_node: The node containing the boundary.
             boundary: The boundary string.
             wrapper: The synthetic wrapper to populate.
         """
@@ -176,7 +203,7 @@ class ContentScope:
     def _collect_after(
         self,
         body: Tag,
-        boundary_node: NavigableString,
+        boundary_node: NavigableString | Tag,
         boundary: str,
         wrapper: Tag,
     ) -> None:
@@ -184,7 +211,7 @@ class ContentScope:
 
         Args:
             body: The body element.
-            boundary_node: The text node containing the boundary.
+            boundary_node: The node containing the boundary.
             boundary: The boundary string.
             wrapper: The synthetic wrapper to populate.
         """
@@ -206,13 +233,13 @@ class ContentScope:
     def _contains_node(
         self,
         element: Tag | NavigableString,
-        target: NavigableString,
+        target: NavigableString | Tag,
     ) -> bool:
         """Check if element contains the target node.
 
         Args:
             element: The element to check.
-            target: The target NavigableString.
+            target: The target node (text, comment, or tag).
 
         Returns:
             True if the element is or contains the target.
@@ -228,21 +255,21 @@ class ContentScope:
     def _split_element_before(
         self,
         element: Tag | NavigableString,
-        boundary_node: NavigableString,
+        boundary_node: NavigableString | Tag,
         boundary: str,
     ) -> Tag | NavigableString | None:
         """Extract the portion of an element before the boundary.
 
         Args:
             element: The element containing the boundary.
-            boundary_node: The text node with the boundary.
+            boundary_node: The node with the boundary.
             boundary: The boundary string.
 
         Returns:
             A copy of the element with only content before the boundary.
         """
         if element is boundary_node:
-            if isinstance(element, Comment):
+            if isinstance(element, (Comment, Tag)):
                 return None
             text = str(element)
             idx = text.find(boundary)
@@ -272,14 +299,14 @@ class ContentScope:
     def _split_element_after(
         self,
         element: Tag | NavigableString,
-        boundary_node: NavigableString,
+        boundary_node: NavigableString | Tag,
         boundary: str,
     ) -> Tag | NavigableString | None:
         """Extract the portion of an element after the boundary.
 
         Args:
             element: The element containing the boundary.
-            boundary_node: The text node with the boundary.
+            boundary_node: The node with the boundary.
             boundary: The boundary string.
 
         Returns:
@@ -288,6 +315,9 @@ class ContentScope:
         if element is boundary_node:
             if isinstance(element, Comment):
                 return None
+            if isinstance(element, Tag):
+                # The tag's children are the content "below" the tag
+                return copy(element)
             text = str(element)
             idx = text.find(boundary) + len(boundary)
             after_text = text[idx:]
